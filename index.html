@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.25.0/babel.min.js"></script>
+	<style>
+	td {
+		width: 500px;
+		border-radius:5px;
+		border: 1px solid white;
+		padding: 1rem;
+	}
+	.header-class {
+		border:0px;
+		background-color:#90d23d;
+		font-weight: bold;
+		color: #fff;
+	}
+	.odd-class {
+		background-color: #373737;
+		color:white;
+	}
+	.even-class {
+		background-color: #4b4d4f;
+		color:white;
+	}
+
+	</style>
+</head>
+<body>
+	<p id="demo"></p>
+	<script type="text/babel">
+		window.onload = function() {
+
+			class Table {
+				constructor({
+						fields = [],
+						rows = 0,
+						meta = [],
+						selectors = {
+							getJSONBtn:'',
+							clearBtn: '',
+							addRowBtn: '',
+							insertRowBtn: '',
+							container: ''
+						}
+					}) {
+					this.fields = fields;
+					this.rows = parseInt(rows, 10);
+					this.meta = meta;
+					this.container = selectors.container ? document.getElementById(selectors.container) : document.body.appendChild(document.createElement('div'));
+					this.insertRowBtn = selectors.insertRowBtn ? document.getElementById(selectors.insertRowBtn) : this.createBtn('Вставить строку');
+					this.addRowBtn = selectors.addRowBtn ? document.getElementById(selectors.addRowBtn) : this.createBtn('Добавить строку');
+					this.clearBtn = selectors.clearBtn ? document.getElementById(selectors.clearBtn) : this.createBtn('Очистить таблицу');
+					this.getJSONBtn = selectors.getJSONBtn ? document.getElementById(selectors.getJSONBtn) : this.createBtn('Получить JSON oбъект');	
+					this.table = this.initializeTable(this.fields, this.rows);
+					this.thead = this.table.childNodes[0];
+					this.tbody = this.table.childNodes[1];
+					this.container.appendChild(this.table);
+					this.tbody.addEventListener('dblclick', this.dblClickHandler);
+
+					this.bindEventHandler(this.clearBtn, this.clearTable);
+					this.bindEventHandler(this.addRowBtn, this.addRow);
+					this.bindEventHandler(this.insertRowBtn, this.insertRow);
+					this.bindEventHandler(this.getJSONBtn, this.getJSON);
+				}
+
+				initializeTable(fields = [], rows = 0) {
+					let tbody = document.createElement("tbody");
+					let table = document.createElement("table");
+					let thead = document.createElement("thead");
+					const theadClass = this.meta[0] ? this.meta[0] : "";
+					let tr = document.createElement("tr");
+					tr.className += theadClass;
+					for (let i = 0; i < fields.length; i++) {
+						let td = document.createElement("td");
+						td.innerHTML = fields[i];
+						tr.appendChild(td);
+					}
+
+					thead.appendChild(tr);
+					table.appendChild(thead);
+
+					for(let i = 0; i < rows; i++) {
+						let tr = document.createElement("tr");
+						const trClass = i % 2 === 0 ? this.meta[1] : this.meta[2];
+						tr.className += trClass;
+						for(let j = 0; j < fields.length; j++) {
+							let td = document.createElement("td");
+							tr.appendChild(td);
+						}
+						tbody.appendChild(tr);
+					}
+					table.appendChild(tbody);
+					return table;
+				}
+
+				addRow () {
+					let tr = document.createElement("tr");
+					const trClass = this.tbody.childNodes.length % 2 === 0 ? this.meta[1] : this.meta[2];
+					tr.className += trClass;
+					for(let i = 0; i < this.thead.childNodes[0].childNodes.length; i++) {
+						let td = document.createElement("td");
+						tr.appendChild(td);
+					}
+					this.tbody.appendChild(tr);
+				}
+
+				insertRow () {
+					let index = parseInt(prompt("Введите номер строки: "), 10);
+					if(!index || !confirm('Вы имелли ввиду ' + index + ' ?')) return;
+					index = index - 1;
+					if (index < 0) return false;
+
+					if (index >= this.tbody.childNodes.length - 1) return this.addRow();
+					let tr = document.createElement("tr");
+					const trClass = index % 2 === 0 ? this.meta[1] : this.meta[2];
+					tr.className += trClass;
+					for(let i = 0; i < this.thead.childNodes[0].childNodes.length; i++) {
+						let td = document.createElement("td");
+						tr.appendChild(td);
+					}
+					this.tbody.insertBefore(tr, this.tbody.childNodes[index + 1]);
+
+					for(let i = index + 1; i < this.tbody.childNodes.length; i++) {
+						let className = i % 2 === 0 ? this.meta[1] : this.meta[2];
+						this.tbody.childNodes[i].className = className;
+					}
+				}
+
+				getJSON () {
+					let data = [];
+					for (let i = 0; i < this.tbody.childNodes.length; i++) {
+						let row = {};
+						for (let j = 0; j < this.thead.childNodes[0].childNodes.length; j++) {
+							row[this.thead.childNodes[0].childNodes[j].innerHTML] = this.tbody.childNodes[i].childNodes[j];
+						}
+						data.push(row);
+					}
+					document.getElementById("demo").innerHTML = JSON.stringify(data);
+					//return JSON.stringify(data);
+				}
+
+				dblClickHandler (event) {
+					if (event.target.tagName.toLowerCase() !== 'td') return;
+					const val = event.target.innerHTML;
+					let input = document.createElement('input');
+					input.setAttribute("type", "text");
+					input.setAttribute("value", val);
+					event.target.innerHTML = '';
+					event.target.appendChild(input);
+					input.focus();
+					input.addEventListener('blur', event => {
+						event.target.parentNode.innerHTML = event.target.value;
+					}, true);
+				}
+
+				clearTable () {
+					for (let i = 0; i < this.tbody.childNodes.length; i++) {
+						for (let j = 0; j < this.tbody.childNodes[i].childNodes.length; j++) {
+							this.tbody.childNodes[i].childNodes[j].innerHTML = '';
+						}
+					}
+				}
+
+				bindEventHandler (target, callback) {
+					target.addEventListener('click', event => callback.call(this), true);
+				}
+
+				createBtn(title = 'Кнопка') {
+					let input = document.createElement('input');
+					input.setAttribute("type", "button");
+					input.setAttribute("value", title);
+					this.container.appendChild(input);
+					return input;
+				}
+			}
+			const config = {
+					fields: ['first', 'second',  'third', 'fourth'],
+					rows: 2,
+					meta: ['header-class', 'odd-class', 'even-class']
+				};
+			const test = new Table(config);
+
+		}
+	</script>
+</body>
+</html>
